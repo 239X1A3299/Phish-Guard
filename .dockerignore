@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+venv/
+__pycache__/
+*.pyc
+
+# Build outputs
+frontend/dist/
+frontend/.vite/
+
+# Models & datasets (auto-generated on startup)
+model/*.joblib
+dataset/*.csv
+
+# Database
+*.db
+*.sqlite3
+
+# Reports
+reports/*.pdf
+
+# Env
+.env
+.env.local
+
+# Editor
+.vscode/
+.idea/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
