@@ -1,284 +1,253 @@
-# 🔐 PhishShield — AI-Based Website Phishing Detection System
+# PhishGuard AI
 
-A production-ready, full-stack web application that detects phishing websites using Machine Learning. Built for a final-year B.Tech project.
-
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
-![Python](https://img.shields.io/badge/Python-3.10+-green)
-![React](https://img.shields.io/badge/React-18-blue)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.104-green)
-![License](https://img.shields.io/badge/license-MIT-orange)
+AI-powered phishing website detection. Combines machine learning with rule-based heuristics to produce a transparent, evidence-based risk score for any URL.
 
 ---
 
-## 📋 Table of Contents
-
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Project Structure](#-project-structure)
-- [Installation Guide](#-installation-guide)
-- [Usage](#-usage)
-- [API Endpoints](#-api-endpoints)
-- [Machine Learning](#-machine-learning)
-- [Deployment](#-deployment)
-- [Documentation](#-documentation)
-- [Screenshots](#-screenshots)
-- [License](#-license)
-
----
-
-## ✨ Features
-
-- **Beautiful Landing Page** — Cybersecurity-themed, responsive, animated
-- **User Authentication** — Register, Login, JWT, password hashing (bcrypt)
-- **Dashboard** — Total scans, safe/phishing/suspicious counts, pie & bar charts, recent activity
-- **URL Scanner** — Real-time ML-based phishing detection
-- **Security Score (0–100)** — Visual risk gauge
-- **Risk Levels** — Safe / Suspicious / Phishing
-- **Scan History** — Search, filter, pagination, CSV export
-- **Admin Dashboard** — User management, system stats
-- **PDF Reports** — Downloadable security reports
-- **Dark Mode** — Toggleable theme
-- **Responsive Design** — Mobile-first Tailwind CSS
-- **Toast Notifications** — Real-time feedback
-- **Loading Animations** — Professional UX
-
----
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | React 18, Tailwind CSS, Vite, React Router, Recharts |
-| **Backend** | Python 3.10+, FastAPI, SQLAlchemy, Pydantic |
-| **ML** | Scikit-learn, Pandas, NumPy, Joblib, XGBoost |
-| **Database** | SQLite |
-| **Auth** | JWT (PyJWT), bcrypt |
-| **Deployment** | Docker, Render |
-
----
-
-## 📁 Project Structure
+## Architecture
 
 ```
-phishshield/
+┌─────────────────┐     HTTPS      ┌──────────────────────┐
+│  React Frontend │ ────────────► │  FastAPI Backend      │
+│  (Vite + TW)    │               │  - URL scanning       │
+└─────────────────┘               │  - ML inference       │
+                                  │  - Risk scoring       │
+┌─────────────────┐               │  - PDF reports        │
+│ Chrome Extension│ ────────────► │  - Auth (JWT)         │
+│  (MV3)          │               └──────────┬───────────┘
+└─────────────────┘                          │
+                                  ┌──────────▼───────────┐
+                                  │  SQLite / PostgreSQL  │
+                                  └──────────────────────┘
+```
+
+**Risk Score Formula:** `0.70 × model_probability × 100 + 0.30 × heuristic_score`
+
+---
+
+## Tech Stack
+
+| Layer      | Technology |
+|------------|-----------|
+| Frontend   | React 18, Vite, Tailwind CSS, Chart.js |
+| Backend    | Python 3.11+, FastAPI, SQLAlchemy |
+| ML         | scikit-learn, XGBoost, joblib |
+| Database   | SQLite (dev) / PostgreSQL (prod) |
+| Auth       | JWT (python-jose), bcrypt |
+| PDF        | ReportLab |
+| Extension  | Chrome MV3 (JS) |
+| Deploy     | Docker, Docker Compose, Nginx |
+
+---
+
+## Quick Start (Local Dev)
+
+### Prerequisites
+- Python 3.11+
+- Node.js 18+
+
+### 1. Clone & configure
+```bash
+git clone <repo-url>
+cd sample
+cp .env.example .env
+# Edit .env — set SECRET_KEY to a random string
+```
+
+### 2. Backend setup
+```bash
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# macOS/Linux:
+source venv/bin/activate
+
+pip install -r requirements.txt
+```
+
+### 3. Generate dataset & train model
+```bash
+python -m backend.dataset.generate_dataset
+python -m backend.ml.model_training
+```
+This creates `dataset/url_dataset.csv` and `model/best_model.pkl`.
+
+> **Note:** The model trains on synthetic URL data. It captures structural phishing patterns but has artificially high accuracy on the synthetic test set. The heuristic scoring engine provides meaningful real-world signals.
+
+### 4. Start backend
+```bash
+uvicorn backend.main:app --reload
+# API available at http://localhost:8000
+# Swagger docs at http://localhost:8000/api/docs
+```
+
+### 5. Frontend setup
+```bash
+cd frontend
+npm install
+npm run dev
+# App at http://localhost:5173
+```
+
+---
+
+## Docker Deployment
+
+```bash
+cp .env.example .env
+# Edit .env with production values
+
+docker-compose up --build -d
+# Frontend at http://localhost:80
+# Backend at http://localhost:8000
+```
+
+---
+
+## Browser Extension
+
+1. Open Chrome → `chrome://extensions`
+2. Enable **Developer mode**
+3. Click **Load unpacked** → select the `extension/` folder
+4. Click the PhishGuard AI icon in your toolbar
+5. Go to **Settings** → paste your JWT token from the web app
+
+The extension works with Microsoft Edge too (same steps).
+
+---
+
+## Running Tests
+
+```bash
+# Delete stale test DB first (important!)
+del test_phishguard.db 2>nul
+
+python -m pytest backend/tests/ -v
+```
+
+Expected: **105 tests pass**.
+
+---
+
+## API Endpoints
+
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET  | `/api/health` | — | Health check |
+| GET  | `/api/ready`  | — | Model readiness |
+| POST | `/api/register` | — | Register user |
+| POST | `/api/login` | — | Login, get JWT |
+| GET  | `/api/me` | ✓ | Current user |
+| POST | `/api/scan` | ✓ | Scan a URL |
+| GET  | `/api/scan/{id}` | ✓ | Get scan result |
+| GET  | `/api/history` | ✓ | Paginated scan history |
+| GET  | `/api/history/export` | ✓ | CSV export |
+| GET  | `/api/report/{scan_id}` | ✓ | Download PDF report |
+| GET  | `/api/dashboard` | ✓ | Dashboard statistics |
+| GET  | `/api/model/info` | — | Model metadata |
+| GET  | `/api/model/evaluation` | — | Evaluation report |
+| POST | `/api/reports` | ✓ | Submit phishing report |
+| GET  | `/api/reports` | ✓ | List reports |
+| GET  | `/api/reports/{id}` | ✓ | Get report detail |
+| PATCH| `/api/reports/{id}/status` | Admin | Update report status |
+| POST | `/api/feedback` | ✓ | Submit scan feedback |
+| GET  | `/api/admin/stats` | Admin | Admin statistics |
+| PATCH| `/api/admin/users/{id}` | Admin | Manage users |
+
+Full interactive docs: `http://localhost:8000/api/docs`
+
+---
+
+## Risk Score Bands
+
+| Score | Category | Classification |
+|-------|----------|---------------|
+| 0–24  | Low Risk | Likely Safe |
+| 25–49 | Moderate Risk | Suspicious |
+| 50–74 | High Risk | Likely Phishing |
+| 75–100| Critical Risk | Likely Phishing |
+
+A low score **does not guarantee** a site is safe.
+
+---
+
+## ML Model
+
+- **Algorithm:** Logistic Regression / Random Forest / Gradient Boosting (best selected by CV F1)
+- **Features:** 34 offline lexical/structural URL features
+- **Training data:** Synthetic URL dataset (5,000 samples, balanced)
+- **Evaluation:** 20% held-out test set, never used for selection
+- **Known limitation:** Trained on synthetic data — accuracy metrics reflect synthetic patterns, not real-world prevalence. The heuristic component adds real-world signal.
+
+To retrain with new data:
+```bash
+python -m backend.dataset.generate_dataset  # or replace with real dataset
+python -m backend.ml.model_training
+```
+
+---
+
+## Security Notes
+
+- Passwords hashed with bcrypt (12 rounds)
+- JWT tokens expire after 24 hours
+- All protected endpoints require `Authorization: Bearer <token>`
+- Admin endpoints require `is_admin=True`
+- Rate limiting: implement via Nginx or a FastAPI middleware in production
+- CORS: restrict `CORS_ORIGINS` in `.env` for production
+- SSRF: URL scanning does not fetch page content — only DNS/SSL/WHOIS metadata
+- Never commit `.env` — use `.env.example` as a template
+
+---
+
+## Project Structure
+
+```
+sample/
 ├── backend/
-│   ├── api/               # FastAPI route handlers
-│   │   ├── auth.py        # Register/Login endpoints
-│   │   ├── scan.py        # URL scanning & history
-│   │   ├── dashboard.py   # Stats & admin endpoints
-│   │   ├── report.py      # PDF report generation
-│   │   └── schemas.py     # Pydantic models
-│   ├── database/
-│   │   ├── database.py    # SQLAlchemy setup
-│   │   └── models.py      # User & Scan models
-│   ├── ml/
-│   │   ├── feature_extractor.py  # URL feature extraction
-│   │   ├── predictor.py          # ML inference
-│   │   └── model_training.py     # Train & evaluate models
-│   ├── utils/
-│   │   ├── auth.py        # JWT helpers
-│   │   └── security.py    # Password hashing
-│   ├── dataset/
-│   │   └── generate_dataset.py   # Sample dataset generator
-│   ├── config.py          # Configuration
-│   └── main.py            # FastAPI entry point
+│   ├── api/           # FastAPI routers (auth, scan, dashboard, report)
+│   ├── database/      # SQLAlchemy models + session
+│   ├── ml/            # Feature extractor, predictor, training pipeline
+│   ├── utils/         # Security (bcrypt + JWT)
+│   ├── tests/         # Pytest test suite (105 tests)
+│   ├── config.py      # Central configuration
+│   └── main.py        # App entry point
 ├── frontend/
 │   ├── src/
-│   │   ├── components/    # Navbar, Footer, ProtectedRoute
-│   │   ├── pages/         # Landing, Login, Register, Dashboard, Scanner, History, Admin
-│   │   ├── context/       # Auth & Theme contexts
-│   │   ├── services/      # API client
-│   │   ├── App.jsx        # Routes
-│   │   └── main.jsx       # Entry point
-│   ├── public/
-│   ├── index.html
-│   ├── package.json
-│   └── vite.config.js
-├── model/                 # Saved ML models
-├── dataset/               # Training datasets
-├── reports/               # Generated PDF reports
-├── docs/                  # Project documentation
+│   │   ├── pages/     # React pages (Scanner, Dashboard, History, etc.)
+│   │   ├── components/# Navbar, Footer, ProtectedRoute
+│   │   ├── context/   # AuthContext, ThemeContext
+│   │   └── services/  # axios API client
+│   └── Dockerfile.frontend
+├── extension/         # Chrome MV3 browser extension
+│   ├── manifest.json
+│   ├── popup.html / popup.js
+│   ├── background.js
+│   ├── content.js
+│   └── icons/
+├── model/             # Trained model artifact + metrics
+├── dataset/           # URL dataset CSV
+├── reports/           # Generated PDF reports
+├── docker-compose.yml
+├── Dockerfile.backend
 ├── requirements.txt
-├── Dockerfile
+├── .env.example
 └── README.md
 ```
 
 ---
 
-## 🚀 Installation Guide
+## Known Limitations
 
-### Prerequisites
-
-- Python 3.10+
-- Node.js 18+
-- npm or yarn
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/yourusername/phishshield.git
-cd phishshield
-```
-
-### 2. Backend Setup
-
-```bash
-# Create virtual environment
-python -m venv venv
-
-# Activate (Windows)
-venv\Scripts\activate
-
-# Activate (Linux/Mac)
-source venv/bin/activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### 3. Frontend Setup
-
-```bash
-cd frontend
-npm install
-```
-
-### 4. Run the Application
-
-**Backend (terminal 1):**
-```bash
-# From project root
-uvicorn backend.main:app --reload --port 8000
-```
-
-**Frontend (terminal 2):**
-```bash
-cd frontend
-npm run dev
-```
-
-Open **http://localhost:5173** in your browser.
-
-> The backend will automatically train the ML model on first startup if no saved model exists.
+1. ML model trained on synthetic data — not validated on real-world phishing URLs
+2. WHOIS lookups can be slow or blocked — results marked "unavailable" when they fail
+3. No real-time threat intelligence feed (Google Safe Browsing key not configured)
+4. External phishing reporting (PhishTank, Netcraft) requires manual submission via provided links
+5. Browser extension auto-scan may slow page loads — disabled by default
+6. Production deployment requires HTTPS and proper SECRET_KEY rotation
 
 ---
 
-## 🖥 Usage
+## License
 
-1. **Register** a new account
-2. **Login** to access the dashboard
-3. Go to **Scanner** and enter a URL
-4. View the **risk score**, **prediction**, and **feature analysis**
-5. Download the **PDF report**
-6. View **scan history** with search/filter/export
-7. Admin users can manage users from the **Admin Dashboard**
-
----
-
-## 🔌 API Endpoints
-
-| Method | Endpoint | Description | Auth |
-|--------|----------|-------------|------|
-| POST | `/api/register` | Register a new user | No |
-| POST | `/api/login` | Login & get JWT | No |
-| POST | `/api/scan` | Scan a URL | Yes |
-| GET | `/api/scan/{id}` | Get a single scan | Yes |
-| GET | `/api/history` | Paginated scan history | Yes |
-| GET | `/api/history/export` | Export history as CSV | Yes |
-| GET | `/api/dashboard` | Dashboard statistics | Yes |
-| GET | `/api/report/{id}` | Download PDF report | Yes |
-| GET | `/api/admin/stats` | Admin statistics | Admin |
-| PATCH | `/api/admin/users/{id}` | Update user status | Admin |
-| GET | `/api/health` | Health check | No |
-
-Interactive API docs available at **http://localhost:8000/api/docs**
-
----
-
-## 🤖 Machine Learning
-
-The system trains and compares **5 models**:
-
-1. **Random Forest**
-2. **Decision Tree**
-3. **XGBoost**
-4. **Logistic Regression**
-5. **SVM**
-
-Metrics displayed: **Accuracy, Precision, Recall, F1 Score, Confusion Matrix**
-
-The **best-performing model** is automatically saved to `model/` and used for predictions.
-
-### URL Features Extracted (30+)
-
-- URL length, dots, hyphens, slashes, digits, special chars
-- HTTPS usage, IP address, @ symbol, hyphen
-- Subdomain count, suspicious keywords
-- Suspicious TLD, URL shortener
-- Domain age, DNS record, SSL certificate, WHOIS
-- Path length, query params, hex/encoded chars
-- TLD length, domain length, underscores, percent, ampersands, etc.
-
----
-
-## 🐳 Deployment
-
-### Docker
-
-```bash
-# Build
-docker build -t phishshield .
-
-# Run
-docker run -p 8000:8000 phishshield
-```
-
-### Render
-
-1. Push the repo to GitHub
-2. Create a new **Web Service** on Render
-3. Connect the repo
-4. Build command: `pip install -r requirements.txt`
-5. Start command: `uvicorn backend.main:app --host 0.0.0.0 --port $PORT`
-6. Deploy!
-
----
-
-## 📚 Documentation
-
-Full documentation is in the [`docs/`](docs/) folder:
-
-- [Architecture Diagram](docs/architecture.md)
-- [ER Diagram](docs/er-diagram.md)
-- [DFD](docs/dfd.md)
-- [Flowchart](docs/flowchart.md)
-- [Use Case Diagram](docs/use-case.md)
-- [Sequence Diagram](docs/sequence.md)
-- [Class Diagram](docs/class-diagram.md)
-- [Testing Report](docs/testing.md)
-- [Deployment Guide](docs/deployment.md)
-- [User Manual](docs/user-manual.md)
-- [Project Report](docs/project-report.md)
-- [Presentation](docs/presentation.md)
-
----
-
-## 📸 Screenshots
-
-> Add screenshots here:
-> - `docs/screenshots/landing.png`
-> - `docs/screenshots/dashboard.png`
-> - `docs/screenshots/scanner.png`
-> - `docs/screenshots/history.png`
-
----
-
-## 📝 License
-
-MIT License — free to use for academic and educational purposes.
-
----
-
-## 👨‍💻 Author
-
-**Your Name** — Final Year B.Tech Student# Phish-Guard
+MIT
